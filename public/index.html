@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XDM Studio | Control Panel, Live Logger & Diagnostic Analyzer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Configuration for Cyber-Dark Aesthetics -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#0a0d14',
+              card: '#121724',
+              border: '#1f293d',
+              glow: '#00f0ff',
+              neonGreen: '#39ff14',
+              neonOrange: '#ff9900',
+              neonRed: '#ff3333',
+              darker: '#06080c'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['Share Tech Mono', 'monospace'],
+            oled: ['Orbitron', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts: Inter, Share Tech Mono, Orbitron -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+  <!-- Custom Stylesheets -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="bg-cyber-bg text-gray-200 font-sans min-h-screen selection:bg-cyan-500 selection:text-black overflow-x-hidden">
+
+  <!-- Visual Alarm Flash Overlay -->
+  <div id="alarmFlash" class="fixed inset-0 pointer-events-none z-50 transition-opacity duration-150 opacity-0 bg-red-600/20"></div>
+
+  <!-- Header Section -->
+  <header class="border-b border-cyber-border bg-cyber-darker/80 backdrop-blur sticky top-0 z-40 px-6 py-4 transition-all">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Logo & Title -->
+      <div class="flex items-center gap-4">
+        <div class="p-2.5 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] animate-pulse">
+          <i data-lucide="cpu" class="w-7 h-7 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 font-oled">
+            XDM Studio PRO
+          </h1> 
+          <p class="text-xs text-gray-400 mt-0.5">Control Panel, Live Logger & Diagnostic Analyzer</p>
+        </div>
+      </div>
+
+      <!-- Quick Connections Control -->
+      <div class="flex flex-wrap items-center gap-3 bg-cyber-card/60 p-2 rounded-2xl border border-cyber-border/80">
+        <!-- Connection Status Badge -->
+        <div id="connectionBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-xs text-cyan-400">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+          </span>
+          <span id="connectionBadgeText">Simulator Mode</span>
+        </div>
+
+        <div class="h-6 w-[1px] bg-cyber-border"></div>
+
+        <!-- COM Port Selector -->
+        <div class="flex items-center gap-1">
+          <i data-lucide="cable" class="w-4 h-4 text-gray-400 ml-1"></i>
+          <select id="portSelect" class="bg-cyber-darker text-xs text-gray-200 border border-cyber-border rounded-lg px-2 py-1.5 outline-none focus:border-cyan-500 transition-all min-w-[100px]">
+            <option value="SIMULATOR">-- Simulator --</option>
+          </select>
+        </div>
+
+        <!-- Baud Rate Selector -->
+        <div class="flex items-center gap-1">
+          <i data-lucide="gauge" class="w-4 h-4 text-gray-400"></i>
+          <select id="baudSelect" class="bg-cyber-darker text-xs text-gray-200 border border-cyber-border rounded-lg px-2 py-1.5 outline-none focus:border-cyan-500 transition-all">
+            <option value="115200" selected>115200</option>
+            <option value="9600">9600</option>
+          </select>
+        </div>
+
+        <!-- Connect / Disconnect Button -->
+        <button id="connectBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-semibold px-4 py-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all flex items-center gap-1.5 active:scale-95">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          Conectare
+        </button>
+
+        <!-- Simulator Toggle Button -->
+        <button id="toggleSimBtn" class="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-500 text-xs px-3 py-1.5 rounded-lg transition-all hidden active:scale-95">
+          Pornește Simulator
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Multimeter Display, Grid Controls & Graphs (9 cols) -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+      
+      <!-- Multimeter LCD Display Card -->
+      <div class="cyber-panel bg-gradient-to-b from-[#151b29] to-[#0c0f17] border border-cyan-500/20 rounded-3xl p-6 relative overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.6)]">
+        <!-- Cyber grid background pattern inside display -->
+        <div class="absolute inset-0 grid-lines pointer-events-none opacity-[0.03]"></div>
+        
+        <!-- Top Status Bar of Multimeter -->
+        <div class="flex items-center justify-between text-xs tracking-wider uppercase text-gray-400 font-mono relative z-10 border-b border-cyber-border/40 pb-3 mb-4">
+          <div class="flex items-center gap-3">
+            <span id="displayModeBadge" class="px-2 py-0.5 bg-cyan-950/60 border border-cyan-800/40 rounded text-cyan-400 font-semibold text-[10px]">VDC Mode</span>
+            <span id="displayRange" class="text-gray-300">AUTO SCALE</span>
+            <span id="displaySpeed" class="text-gray-300">SPEED: MEDIUM</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="beeperIndicator" class="flex items-center gap-1 text-cyber-neonGreen">
+              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> BEEP
+            </span>
+            <span id="remoteIndicator" class="px-1.5 py-0.5 bg-blue-950/40 border border-blue-900/30 rounded text-blue-400 text-[10px]">RMT</span>
+          </div>
+        </div>
+
+        <!-- Main Numeric Layout -->
+        <div class="flex flex-col md:flex-row items-baseline md:justify-between relative z-10 my-4 gap-2">
+          <!-- Big OLED value -->
+          <div class="flex flex-col">
+            <span class="text-xs font-mono text-gray-400 tracking-wider uppercase mb-1">Măsurătoare Curentă</span>
+            <div class="flex items-baseline gap-2">
+              <div id="mainReading" class="font-oled font-bold text-5xl md:text-6xl text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.7)] tracking-wide select-all transition-all duration-100">
+                0.0000
+              </div>
+              <div id="mainUnit" class="font-oled font-medium text-2xl md:text-3xl text-cyan-500 select-none drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+                V
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Display (Dual display mode) -->
+          <div id="subDisplayContainer" class="flex flex-col bg-cyber-darker/60 border border-cyber-border/50 rounded-2xl p-3 min-w-[150px] transition-all opacity-40 hover:opacity-100">
+            <span class="text-[10px] font-mono text-gray-400 tracking-wider uppercase mb-1 flex items-center gap-1">
+              <i data-lucide="layers" class="w-3 h-3 text-cyber-neonOrange"></i> Display Secundar
+            </span>
+            <div class="flex items-baseline gap-1">
+              <div id="subReading" class="font-oled font-bold text-xl text-cyber-neonOrange drop-shadow-[0_0_8px_rgba(255,153,0,0.5)]">
+                OFF
+              </div>
+              <div id="subUnit" class="font-oled text-xs text-cyber-neonOrange drop-shadow-[0_0_4px_rgba(255,153,0,0.3)]">
+                Hz
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Limits / Alarm Warning Bar -->
+        <div id="alarmWarningBar" class="hidden relative z-10 bg-red-950/40 border border-red-500/20 p-2.5 rounded-xl flex items-center gap-2.5 text-cyber-neonRed animate-pulse mt-4 text-xs font-mono">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-cyber-neonRed"></i>
+          <span id="alarmWarningText">DEPĂȘIRE LIMITĂ DECLANȘATĂ!</span>
+        </div>
+
+        <!-- Multi-Stats Horizontal Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-cyber-border/40 pt-4 mt-4 relative z-10 font-mono text-[11px] text-gray-400">
+          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
+            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="trending-down" class="w-3 h-3 text-cyan-400"></i> MINIM</div>
+            <div class="text-xs font-bold text-gray-200" id="statMin">-</div>
+          </div>
+          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
+            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="trending-up" class="w-3 h-3 text-cyber-neonOrange"></i> MAXIM</div>
+            <div class="text-xs font-bold text-gray-200" id="statMax">-</div>
+          </div>
+          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
+            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="calculator" class="w-3 h-3 text-emerald-400"></i> MEDIE</div>
+            <div class="text-xs font-bold text-gray-200" id="statAvg">-</div>
+          </div>
+          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
+            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="bar-chart-2" class="w-3 h-3 text-purple-400"></i> EȘANTIOANE</div>
+            <div class="text-xs font-bold text-gray-200" id="statCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Panel Grid (Instrument Commands) -->
+      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border">
+        <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase mb-4 flex items-center gap-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Panou Setări & Control Aparat
+        </h2>
+
+        <!-- Function Selector: Dial / Grid -->
+        <div class="mb-6">
+          <label class="text-xs text-gray-400 font-mono uppercase tracking-wider mb-2 block">Selecție Funcție Principală (FUNC1)</label>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="funcGrid">
+            <!-- VDC -->
+            <button data-func="VOLT" class="func-btn active flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i>
+              <span class="text-xs font-bold tracking-wider">V DC</span>
+              <span class="text-[8px] opacity-60 font-mono">Voltaj C.C.</span>
+            </button>
+            <!-- VAC -->
+            <button data-func="VOLT AC" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="waveform" class="w-5 h-5 text-sky-400"></i>
+              <span class="text-xs font-bold tracking-wider">V AC</span>
+              <span class="text-[8px] opacity-60 font-mono">Voltaj C.A.</span>
+            </button>
+            <!-- IDC -->
+            <button data-func="CURR" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
+              <span class="text-xs font-bold tracking-wider">A DC</span>
+              <span class="text-[8px] opacity-60 font-mono">Curent C.C.</span>
+            </button>
+            <!-- IAC -->
+            <button data-func="CURR AC" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="zap-off" class="w-5 h-5 text-yellow-500"></i>
+              <span class="text-xs font-bold tracking-wider">A AC</span>
+              <span class="text-[8px] opacity-60 font-mono">Curent C.A.</span>
+            </button>
+            <!-- RES -->
+            <button data-func="RES" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="percent" class="w-5 h-5 text-emerald-400"></i>
+              <span class="text-xs font-bold tracking-wider">Ω (2-W)</span>
+              <span class="text-[8px] opacity-60 font-mono">Rezistență</span>
+            </button>
+            <!-- FRES (4W) -->
+            <button data-func="FRES" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="grid" class="w-5 h-5 text-emerald-500"></i>
+              <span class="text-xs font-bold tracking-wider">Ω (4-W)</span>
+              <span class="text-[8px] opacity-60 font-mono">4-Fire</span>
+            </button>
+            <!-- CAP -->
+            <button data-func="CAP" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="box" class="w-5 h-5 text-indigo-400"></i>
+              <span class="text-xs font-bold tracking-wider">CAP</span>
+              <span class="text-[8px] opacity-60 font-mono">Capacitate</span>
+            </button>
+            <!-- FREQ -->
+            <button data-func="FREQ" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="radio" class="w-5 h-5 text-blue-400"></i>
+              <span class="text-xs font-bold tracking-wider">FREQ</span>
+              <span class="text-[8px] opacity-60 font-mono">Frecvență</span>
+            </button>
+            <!-- TEMP -->
+            <button data-func="TEMP" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="thermometer" class="w-5 h-5 text-red-400"></i>
+              <span class="text-xs font-bold tracking-wider">TEMP</span>
+              <span class="text-[8px] opacity-60 font-mono">Temperatură</span>
+            </button>
+            <!-- DIOD & CONT -->
+            <button data-func="DIOD" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
+              <i data-lucide="chevrons-right" class="w-5 h-5 text-pink-400"></i>
+              <span class="text-xs font-bold tracking-wider">DIODĂ</span>
+              <span class="text-[8px] opacity-60 font-mono">Test Diodă</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Range Configurator -->
+          <div class="bg-cyber-darker/60 p-4 rounded-2xl border border-cyber-border">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-gray-300 font-mono uppercase tracking-wider">Scală / Range</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="rangeAutoToggle" class="sr-only peer" checked>
+                <div class="w-8 h-4 bg-cyber-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500"></div>
+                <span class="ml-1.5 text-[10px] font-mono text-gray-400">AUTO</span>
+              </label>
+            </div>
+            
+            <select id="rangeSelect" disabled class="w-full bg-cyber-card text-xs border border-cyber-border rounded-xl px-3 py-2 outline-none focus:border-cyan-500 text-gray-400 transition-all">
+              <!-- Dynamically populated options based on active function -->
+              <option value="AUTO">Selectează o funcție</option>
+            </select>
+            <p class="text-[9px] text-gray-500 font-mono mt-1">Limitează scala pentru o rezoluție mai bună.</p>
+          </div>
+
+          <!-- Speed Configurator -->
+          <div class="bg-cyber-darker/60 p-4 rounded-2xl border border-cyber-border">
+            <span class="text-xs font-semibold text-gray-300 font-mono uppercase tracking-wider mb-2 block">Viteză Citire (RATE)</span>
+            <div class="flex rounded-xl bg-cyber-card p-1 border border-cyber-border">
+              <button id="speedF" class="flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white">RAPID (F)</button>
+              <button id="speedM" class="flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white active">MEDIU (M)</button>
+              <button id="speedL" class="flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white">LENT (L)</button>
+            </div>
+            <p class="text-[9px] text-gray-500 font-mono mt-2">Viteza mare reduce numărul de cifre semnificative.</p>
+          </div>
+
+          <!-- Hardware Features -->
+          <div class="bg-cyber-darker/60 p-4 rounded-2xl border border-cyber-border flex flex-col justify-between">
+            <span class="text-xs font-semibold text-gray-300 font-mono uppercase tracking-wider mb-2 block">Funcționalități Extra</span>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <button id="toggleSubDisplayBtn" class="bg-cyber-card hover:bg-cyber-border border border-cyber-border rounded-xl py-1.5 px-2 text-[10px] font-semibold text-gray-300 flex items-center justify-center gap-1 transition-all">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-cyber-neonOrange"></i>
+                Disp. Secundar
+              </button>
+              <button id="beepHardwareBtn" class="bg-cyber-card hover:bg-cyber-border border border-cyber-border rounded-xl py-1.5 px-2 text-[10px] font-semibold text-gray-300 flex items-center justify-center gap-1 transition-all">
+                <i data-lucide="music" class="w-3.5 h-3.5 text-cyan-400"></i>
+                Test Buzzer
+              </button>
+            </div>
+            
+            <div class="flex items-center justify-between border-t border-cyber-border/40 pt-2 mt-2">
+              <span class="text-[10px] font-mono text-gray-400">Buzzer Intern (Aparat)</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="beeperStateToggle" class="sr-only peer" checked>
+                <div class="w-8 h-4 bg-cyber-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Visualization Panel (Smooth Chart) -->
+      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
+            <div>
+              <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase">Grafic în Timp Real</h2>
+              <p class="text-[10px] text-gray-400 font-mono">Analiză vizuală și variații de tensiune/stabilitate</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <!-- Window selector -->
+            <select id="chartWindow" class="bg-cyber-darker text-[10px] font-mono border border-cyber-border rounded-lg px-2.5 py-1.5 outline-none focus:border-cyan-500 text-gray-300">
+              <option value="30">Ultimele 30 valori</option>
+              <option value="100" selected>Ultimele 100 valori</option>
+              <option value="500">Ultimele 500 valori</option>
+              <option value="all">Toată sesiunea</option>
+            </select>
+
+            <button id="pauseChartBtn" class="bg-cyber-darker hover:bg-cyber-border border border-cyber-border rounded-lg p-1.5 text-gray-300 transition-all" title="Pauză Grafic">
+              <i data-lucide="pause" class="w-3.5 h-3.5" id="pauseChartIcon"></i>
+            </button>
+            <button id="clearChartBtn" class="bg-cyber-darker hover:bg-cyber-border border border-cyber-border rounded-lg p-1.5 text-gray-300 transition-all" title="Golește Grafic">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="h-64 sm:h-72 w-full relative">
+          <canvas id="liveChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Alarm Setup, Log Table, SCPI Terminal Console (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+      
+      <!-- Smart Alarm & Threshold Setup Card -->
+      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border">
+        <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase mb-3.5 flex items-center gap-2">
+          <i data-lucide="bell" class="w-4 h-4 text-cyber-neonRed"></i> Configurare Alarme & Limite
+        </h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-3.5">
+            <div>
+              <label class="text-[10px] font-mono text-gray-400 block mb-1">LIMITĂ MINIMĂ</label>
+              <div class="relative">
+                <input type="number" id="alarmLowVal" placeholder="- f. lim." class="w-full bg-cyber-darker border border-cyber-border text-xs rounded-xl py-2 px-3 outline-none focus:border-cyan-500 text-gray-200 font-mono">
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] font-mono text-gray-400 block mb-1">LIMITĂ MAXIMĂ</label>
+              <div class="relative">
+                <input type="number" id="alarmHighVal" placeholder="+ f. lim." class="w-full bg-cyber-darker border border-cyber-border text-xs rounded-xl py-2 px-3 outline-none focus:border-cyan-500 text-gray-200 font-mono">
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-cyber-border/40 pt-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono text-gray-400">Sunet Alertă (Acoustic alarm)</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="alarmSoundToggle" class="sr-only peer">
+                <div class="w-8 h-4 bg-cyber-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyber-neonRed"></div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono text-gray-400">Alertă Vizuală (Flashing Screen)</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="alarmFlashToggle" class="sr-only peer" checked>
+                <div class="w-8 h-4 bg-cyber-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyber-neonRed"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Data Logger -->
+      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase flex items-center gap-2">
+            <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i> Înregistrator Date (Log)
+          </h2>
+          <span id="logCount" class="text-[10px] font-mono bg-cyber-border px-2 py-0.5 rounded-full text-cyan-400">0 recs</span>
+        </div>
+
+        <!-- Sampling Speed Regulator -->
+        <div class="bg-cyber-darker/60 p-3 rounded-2xl border border-cyber-border mb-3 flex flex-col gap-1.5">
+          <div class="flex justify-between text-[10px] font-mono text-gray-400">
+            <span>Interval Citire:</span>
+            <span id="sampleIntervalText" class="text-cyan-400 font-bold">500 ms</span>
+          </div>
+          <input type="range" id="sampleIntervalSlider" min="100" max="10000" step="100" value="500" class="w-full accent-cyan-500 h-1 bg-cyber-border rounded-lg appearance-none cursor-pointer">
+          <div class="flex justify-between text-[8px] text-gray-500 font-mono">
+            <span>100 ms (Rapid)</span>
+            <span>10 sec (Stabil)</span>
+          </div>
+        </div>
+
+        <!-- Log Table Container -->
+        <div class="overflow-y-auto max-h-48 border border-cyber-border rounded-2xl bg-cyber-darker/50" id="logTableContainer">
+          <table class="w-full text-left font-mono text-[10px]">
+            <thead class="bg-cyber-darker text-gray-500 sticky top-0 border-b border-cyber-border">
+              <tr>
+                <th class="p-2 w-10 text-center">#</th>
+                <th class="p-2 w-16">Oră</th>
+                <th class="p-2">Valoare</th>
+                <th class="p-2 w-12">Mod</th>
+              </tr>
+            </thead>
+            <tbody id="logTableBody" class="divide-y divide-cyber-border/40">
+              <!-- Logs dynamic generation -->
+              <tr id="emptyLogPlaceholder">
+                <td colspan="4" class="p-4 text-center text-gray-500">Niciun eșantion stocat... Conectează aparatul pentru a începe logarea.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Logging Controls and Export -->
+        <div class="grid grid-cols-3 gap-2 mt-3">
+          <button id="pauseLogBtn" class="bg-cyber-darker hover:bg-cyber-border border border-cyber-border rounded-xl py-1.5 text-[9px] font-semibold text-gray-300 flex items-center justify-center gap-1 transition-all">
+            <i data-lucide="pause" class="w-3 h-3 text-cyan-400" id="pauseLogIcon"></i>
+            <span>Pauză Log</span>
+          </button>
+          <button id="clearLogsBtn" class="bg-cyber-darker hover:bg-cyber-border border border-cyber-border rounded-xl py-1.5 text-[9px] font-semibold text-gray-300 flex items-center justify-center gap-1 transition-all">
+            <i data-lucide="trash-2" class="w-3 h-3 text-red-400"></i>
+            <span>Șterge</span>
+          </button>
+          
+          <div class="relative group">
+            <button class="w-full bg-cyan-500 hover:bg-cyan-400 text-black rounded-xl py-1.5 text-[9px] font-bold flex items-center justify-center gap-1 transition-all">
+              <i data-lucide="download" class="w-3 h-3"></i>
+              <span>Export</span>
+            </button>
+            <div class="absolute right-0 bottom-full mb-1 bg-cyber-card border border-cyber-border rounded-xl shadow-2xl p-1 hidden group-hover:block z-50 min-w-[100px]">
+              <button id="exportCsvBtn" class="w-full text-left hover:bg-cyber-darker text-[9px] font-mono text-gray-300 px-2 py-1.5 rounded-lg flex items-center gap-1">
+                <i data-lucide="file-spreadsheet" class="w-3 h-3 text-emerald-400"></i> CSV Format
+              </button>
+              <button id="exportJsonBtn" class="w-full text-left hover:bg-cyber-darker text-[9px] font-mono text-gray-300 px-2 py-1.5 rounded-lg flex items-center gap-1">
+                <i data-lucide="file-json" class="w-3 h-3 text-yellow-400"></i> JSON Format
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCPI Terminal Console -->
+      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border flex flex-col h-[340px]">
+        <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase mb-1 flex items-center gap-2">
+          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i> Consolă Terminal SCPI
+        </h2>
+        <p class="text-[9px] text-gray-400 font-mono mb-2">Comandă direct instrumentul folosind protocolul SCPI standard.</p>
+
+        <!-- Command Prompt Display -->
+        <div id="terminalLog" class="flex-1 bg-cyber-darker rounded-2xl border border-cyber-border/80 p-3 overflow-y-auto font-mono text-[10px] space-y-1.5 min-h-0 select-text">
+          <div class="text-cyan-500">// Terminal inițializat în mod Simulator.</div>
+          <div class="text-cyan-500">// Scrie o comandă mai jos sau dă click pe butoanele rapide.</div>
+        </div>
+
+        <!-- Terminal Quick Suggestions Strip -->
+        <div class="flex flex-wrap gap-1 my-2" id="quickScpiPills">
+          <button data-cmd="*IDN?" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">*IDN?</button>
+          <button data-cmd="MEAS?" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">MEAS?</button>
+          <button data-cmd="SYST:REM" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">SYST:REM</button>
+          <button data-cmd="SYST:LOC" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">SYST:LOC</button>
+          <button data-cmd="*RST" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">*RST</button>
+          <button data-cmd="SYST:BEEP" class="bg-cyber-darker hover:bg-cyber-border text-gray-400 text-[8px] font-mono px-2 py-1 rounded border border-cyber-border transition-all">BEEP</button>
+        </div>
+
+        <!-- Terminal Input -->
+        <form id="scpiForm" class="flex gap-2">
+          <input type="text" id="scpiInput" placeholder="Ex: MEAS? sau FUNC1 'VOLT'" class="flex-1 bg-cyber-darker border border-cyber-border text-xs rounded-xl py-2 px-3 outline-none focus:border-cyan-500 text-gray-200 font-mono placeholder:text-gray-600">
+          <button type="submit" class="bg-cyber-border hover:bg-cyan-500 hover:text-black border border-cyber-border rounded-xl px-4 py-2 text-xs font-semibold text-gray-300 flex items-center transition-all">
+            Trimite
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Help & Footer Section -->
+  <footer class="border-t border-cyber-border bg-cyber-darker/60 py-6 px-6 text-center text-xs font-mono text-gray-500 mt-12 max-w-7xl mx-auto rounded-t-3xl">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-5xl mx-auto">
+      <div class="flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-4 h-4 text-cyan-400"></i>
+        <span>XDM Studio PRO © 6PawsWorkshop</span>
+      </div>
+      <div>
+        <span>Join us on: </span>
+        <a href="https://github.com/sixpawsworkshop/XDM-Studio" target="_blank" class="hover:text-cyan-400 transition-colors mr-3">GitHub</a>
+        <a href="#" class="hover:text-cyan-400 transition-colors">Discord</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Main Javascript Bundle -->
+  <script src="app.js"></script>
+</body>
+</html>

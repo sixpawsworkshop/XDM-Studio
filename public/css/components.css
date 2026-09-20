@@ -1,0 +1,34 @@
+/* components.css */
+.func-btn {
+  background-color: #0d111c;
+  border: 1px solid #1f293d;
+  color: #9ca3af;
+  padding: 1rem;
+  border-radius: 1rem;
+  transition: all 0.2s;
+}
+.func-btn:hover { color: #fff; border-color: rgba(6, 182, 212, 0.4); background-color: rgba(6, 182, 212, 0.03); }
+.func-btn.active { background: linear-gradient(135deg, #162a3a 0%, #0c1524 100%); border-color: var(--accent-cyan); color: var(--accent-cyan); box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); }
+
+/* OLED display segment styling */
+#mainReading { text-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+#mainReading.ol-active { color: var(--accent-alert) !important; text-shadow: 0 0 10px rgba(239, 68, 68, 0.6) !important; }
+#subReading { text-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+
+/* Range/Speed */
+.speed-active { background-color: var(--accent-cyan) !important; color: #000 !important; }
+
+/* Terminal */
+.terminal-tx { color: #9ca3af; }
+.terminal-tx::before { content: ">> "; color: var(--accent-cyan); }
+.terminal-rx { color: #10b981; font-weight: 500; }
+.terminal-rx::before { content: "<< "; color: #34d399; }
+.terminal-err { color: var(--accent-alert); }
+.terminal-err::before { content: "!! "; color: var(--accent-alert); }
+
+/* Range Slider */
+#sampleIntervalSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent-cyan); cursor: pointer;
+}

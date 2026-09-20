@@ -1,0 +1,31 @@
+{
+  "connection": {
+    "disconnected": "Disconnected",
+    "simulator": "Simulator Mode",
+    "active": "Active Port",
+    "connect": "Connect",
+    "disconnect": "Disconnect"
+  },
+  "functions": {
+    "VOLT": "DC Voltage",
+    "VOLT_AC": "AC Voltage",
+    "CURR": "DC Current",
+    "CURR_AC": "AC Current",
+    "RES": "Resistance",
+    "FRES": "4W Resistance",
+    "CAP": "Capacitance",
+    "FREQ": "Frequency",
+    "PER": "Period",
+    "TEMP": "Temperature",
+    "DIOD": "Diode",
+    "CONT": "Continuity"
+  },
+  "settings": {
+    "speed": "Speed",
+    "fast": "Fast",
+    "medium": "Medium",
+    "slow": "Slow",
+    "auto": "Auto",
+    "manual": "Manual"
+  }
+}

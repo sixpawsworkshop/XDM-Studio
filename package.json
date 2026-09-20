@@ -1,0 +1,26 @@
+{
+  "name": "owon-xdm2041-dashboard",
+  "version": "1.0.0",
+  "description": "Modern dark-themed dashboard and data logger for OWON XDM2041 Benchtop Multimeter",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "owon",
+    "xdm2041",
+    "multimeter",
+    "scpi",
+    "serialport",
+    "dashboard",
+    "dmm"
+  ],
+  "author": "6 Paws Workshop",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "serialport": "^12.0.0",
+    "ws": "^8.18.0"
+  }
+}

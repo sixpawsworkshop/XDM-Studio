@@ -1,0 +1,31 @@
+{
+  "connection": {
+    "disconnected": "Deconectat",
+    "simulator": "Mod Simulator",
+    "active": "Port Activ",
+    "connect": "Conectare",
+    "disconnect": "Deconectare"
+  },
+  "functions": {
+    "VOLT": "Voltaj C.C.",
+    "VOLT_AC": "Voltaj C.A.",
+    "CURR": "Curent C.C.",
+    "CURR_AC": "Curent C.A.",
+    "RES": "Rezistență",
+    "FRES": "Rezistență 4W",
+    "CAP": "Capacitate",
+    "FREQ": "Frecvență",
+    "PER": "Periodă",
+    "TEMP": "Temperatură",
+    "DIOD": "Diodă",
+    "CONT": "Continuitate"
+  },
+  "settings": {
+    "speed": "Viteză",
+    "fast": "Rapid",
+    "medium": "Mediu",
+    "slow": "Lent",
+    "auto": "Auto",
+    "manual": "Manual"
+  }
+}
