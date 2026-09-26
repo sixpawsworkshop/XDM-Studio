@@ -933,8 +933,8 @@ function updateChartData(value, timestamp) {
 function updatePortsDropdown(ports, warning) {
   const select = document.getElementById('portSelect');
   
-  // Retain simulator, flush old entries
-  select.innerHTML = '<option value="SIMULATOR">-- Simulator --</option>';
+  // Reset to placeholder only
+  select.innerHTML = '<option value="">-- Selectează port --</option>';
 
   if (warning) {
     appendTerminalLog(`[SERIAL] ${warning}`, 'err');
@@ -944,7 +944,6 @@ function updatePortsDropdown(ports, warning) {
     ports.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.path;
-      // Show descriptive labels if available
       opt.text = p.friendlyName ? `${p.path} (${p.friendlyName})` : p.path;
       select.appendChild(opt);
     });
@@ -955,26 +954,37 @@ function updatePortsDropdown(ports, warning) {
 }
 
 // HEADER CONNECTION BADGE MANAGER
-function updateConnectionBadge(connected, isSim = true, portName = 'SIMULATOR') {
+function updateConnectionBadge(connected, isSim = true, portName = '') {
   const badge = document.getElementById('connectionBadge');
   const badgeText = document.getElementById('connectionBadgeText');
   const connectBtn = document.getElementById('connectBtn');
 
+  // Helper: replace the animated dot colours
+  const pingSpan = badge.querySelector('span.animate-ping');
+  const dotSpan  = badge.querySelector('span.relative.inline-flex');
+
   if (!connected) {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-400 min-w-[120px]';
+    if (pingSpan) pingSpan.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-500 opacity-60';
+    if (dotSpan)  dotSpan.className  = 'relative inline-flex rounded-full h-2 w-2 bg-slate-500';
     badgeText.innerText = 'Deconectat';
-    connectBtn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5"></i> Conectare';
-    connectBtn.className = 'bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20';
+    connectBtn.innerHTML = '<i data-lucide="plug" class="w-3.5 h-3.5"></i> Conectare';
+    connectBtn.className = 'bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95';
   } else if (isSim) {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500';
-    badgeText.innerText = 'Mod Simulator';
-    connectBtn.innerHTML = '<i data-lucide="power" class="w-3.5 h-3.5"></i> Conectare Serială';
-    connectBtn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2';
+    // Simulator active — show neutral "Standby" state, don't expose "Simulator" word
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-[10px] font-bold text-slate-300 min-w-[120px]';
+    if (pingSpan) pingSpan.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-50';
+    if (dotSpan)  dotSpan.className  = 'relative inline-flex rounded-full h-2 w-2 bg-slate-400';
+    badgeText.innerText = 'Standby';
+    connectBtn.innerHTML = '<i data-lucide="plug" class="w-3.5 h-3.5"></i> Conectare';
+    connectBtn.className = 'bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95';
   } else {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400';
-    badgeText.innerText = `Port Activ: ${portName}`;
-    connectBtn.innerHTML = '<i data-lucide="square" class="w-3.5 h-3.5"></i> Deconectare';
-    connectBtn.className = 'bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-red-500/20';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 min-w-[120px]';
+    if (pingSpan) pingSpan.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+    if (dotSpan)  dotSpan.className  = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+    badgeText.innerText = portName ? `${portName}` : 'Conectat';
+    connectBtn.innerHTML = '<i data-lucide="plug-zap" class="w-3.5 h-3.5"></i> Deconectare';
+    connectBtn.className = 'bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-red-500/20 active:scale-95';
   }
   initializeLucide();
 }
@@ -1037,22 +1047,21 @@ function setupUIEventListeners() {
     const selectedBaud = document.getElementById('baudSelect').value;
 
     if (currentDeviceState.connected && !currentDeviceState.isSimulator) {
-      // Disconnect and switch back to simulator
+      // Disconnect serial port
       socket.send(JSON.stringify({ type: 'disconnect_serial' }));
     } else {
-      if (selectedPort === 'SIMULATOR') {
-        // Fall back or force Simulator
-        socket.send(JSON.stringify({ type: 'toggle_simulator', enable: true }));
-        showToast('Mod Simulator activat cu succes!', 'info');
-      } else {
-        // Connect actual serial
-        appendTerminalLog(`Trimit comandă conectare port ${selectedPort}...`, 'tx');
-        socket.send(JSON.stringify({
-          type: 'connect_serial',
-          path: selectedPort,
-          baudRate: selectedBaud
-        }));
+      if (!selectedPort) {
+        showToast('Selectează un port COM din listă înainte de a conecta.', 'error');
+        // Trigger a port scan so the user sees available ports
+        socket.send(JSON.stringify({ type: 'scan_ports' }));
+        return;
       }
+      appendTerminalLog(`Trimit comandă conectare port ${selectedPort}...`, 'tx');
+      socket.send(JSON.stringify({
+        type: 'connect_serial',
+        path: selectedPort,
+        baudRate: selectedBaud
+      }));
     }
   };
 
