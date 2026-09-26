@@ -6,36 +6,44 @@
   <title>XDM Studio | Control Panel, Live Logger & Diagnostic Analyzer</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Tailwind Configuration for Cyber-Dark Aesthetics -->
+  <!-- Tailwind Configuration for Professional Instrument Aesthetics -->
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
+            instrument: {
+              bg: '#0f172a',
+              card: '#1e293b',
+              border: '#334155',
+              accent: '#06b6d4',
+              secondary: '#64748b',
+              reading: '#22d3ee'
+            },
             cyber: {
               bg: '#0a0d14',
               card: '#121724',
               border: '#1f293d',
               glow: '#00f0ff',
-              neonGreen: '#39ff14',
-              neonOrange: '#ff9900',
-              neonRed: '#ff3333',
+              neonGreen: '#10b981',
+              neonOrange: '#f59e0b',
+              neonRed: '#ef4444',
               darker: '#06080c'
             }
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['Share Tech Mono', 'monospace'],
-            oled: ['Orbitron', 'monospace']
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['JetBrains Mono', 'monospace']
           }
         }
       }
     }
   </script>
-  <!-- Google Fonts: Inter, Share Tech Mono, Orbitron -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lucide Icons -->
@@ -51,25 +59,25 @@
   <div id="alarmFlash" class="fixed inset-0 pointer-events-none z-50 transition-opacity duration-150 opacity-0 bg-red-600/20"></div>
 
   <!-- Header Section -->
-  <header class="border-b border-cyber-border bg-cyber-darker/80 backdrop-blur sticky top-0 z-40 px-6 py-4 transition-all">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40 px-8 py-5 transition-all">
+    <div class="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
       <!-- Logo & Title -->
-      <div class="flex items-center gap-4">
-        <div class="p-2.5 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] animate-pulse">
-          <i data-lucide="cpu" class="w-7 h-7 text-white"></i>
+      <div class="flex items-center gap-5">
+        <div class="p-3 bg-slate-800 rounded-2xl border border-slate-700 shadow-inner">
+          <i data-lucide="cpu" class="w-6 h-6 text-cyan-500"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 font-oled">
-            XDM Studio PRO
+          <h1 class="text-lg font-extrabold tracking-tight text-white font-sans flex items-center gap-2">
+            XDM Studio <span class="px-1.5 py-0.5 bg-cyan-500 text-slate-900 rounded text-[10px] font-black tracking-widest">PRO</span>
           </h1> 
-          <p class="text-xs text-gray-400 mt-0.5">Control Panel, Live Logger & Diagnostic Analyzer</p>
+          <p class="text-[10px] text-slate-500 font-medium mt-0.5 uppercase tracking-wider">Benchtop Multimeter Controller & Analyzer</p>
         </div>
       </div>
 
       <!-- Quick Connections Control -->
-      <div class="flex flex-wrap items-center gap-3 bg-cyber-card/60 p-2 rounded-2xl border border-cyber-border/80">
+      <div class="flex flex-wrap items-center gap-4 bg-slate-800/50 p-1.5 rounded-[1.25rem] border border-slate-700/50 backdrop-blur-sm">
         <!-- Connection Status Badge -->
-        <div id="connectionBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-xs text-cyan-400">
+        <div id="connectionBadge" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold text-cyan-400">
           <span class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
@@ -77,12 +85,12 @@
           <span id="connectionBadgeText">Simulator Mode</span>
         </div>
 
-        <div class="h-6 w-[1px] bg-cyber-border"></div>
+        <div class="h-6 w-[1px] bg-slate-700/50 mx-1"></div>
 
         <!-- COM Port Selector -->
-        <div class="flex items-center gap-1">
-          <i data-lucide="cable" class="w-4 h-4 text-gray-400 ml-1"></i>
-          <select id="portSelect" class="bg-cyber-darker text-xs text-gray-200 border border-cyber-border rounded-lg px-2 py-1.5 outline-none focus:border-cyan-500 transition-all min-w-[100px]">
+        <div class="flex items-center gap-2 px-1">
+          <i data-lucide="cable" class="w-3.5 h-3.5 text-slate-500"></i>
+          <select id="portSelect" class="bg-transparent text-[11px] font-bold text-slate-300 outline-none cursor-pointer hover:text-white transition-colors">
             <option value="SIMULATOR">-- Simulator --</option>
           </select>
         </div>
@@ -142,10 +150,10 @@
           <div class="flex flex-col">
             <span class="text-xs font-mono text-gray-400 tracking-wider uppercase mb-1">Măsurătoare Curentă</span>
             <div class="flex items-baseline gap-2">
-              <div id="mainReading" class="font-oled font-bold text-5xl md:text-6xl text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.7)] tracking-wide select-all transition-all duration-100">
+              <div id="mainReading" class="font-display font-bold text-5xl md:text-6xl text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.7)] tracking-wide select-all transition-all duration-100">
                 0.0000
               </div>
-              <div id="mainUnit" class="font-oled font-medium text-2xl md:text-3xl text-cyan-500 select-none drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+              <div id="mainUnit" class="font-display font-medium text-2xl md:text-3xl text-cyan-500 select-none drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
                 V
               </div>
             </div>
@@ -157,10 +165,10 @@
               <i data-lucide="layers" class="w-3 h-3 text-cyber-neonOrange"></i> Display Secundar
             </span>
             <div class="flex items-baseline gap-1">
-              <div id="subReading" class="font-oled font-bold text-xl text-cyber-neonOrange drop-shadow-[0_0_8px_rgba(255,153,0,0.5)]">
+              <div id="subReading" class="font-display font-bold text-xl text-cyber-neonOrange drop-shadow-[0_0_8px_rgba(255,153,0,0.5)]">
                 OFF
               </div>
-              <div id="subUnit" class="font-oled text-xs text-cyber-neonOrange drop-shadow-[0_0_4px_rgba(255,153,0,0.3)]">
+              <div id="subUnit" class="font-display text-xs text-cyber-neonOrange drop-shadow-[0_0_4px_rgba(255,153,0,0.3)]">
                 Hz
               </div>
             </div>
@@ -174,22 +182,30 @@
         </div>
 
         <!-- Multi-Stats Horizontal Strip -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-cyber-border/40 pt-4 mt-4 relative z-10 font-mono text-[11px] text-gray-400">
-          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
-            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="trending-down" class="w-3 h-3 text-cyan-400"></i> MINIM</div>
-            <div class="text-xs font-bold text-gray-200" id="statMin">-</div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-800 pt-6 mt-6 relative z-10 font-mono text-[10px]">
+          <div class="bg-slate-800/30 p-3 rounded-2xl border border-slate-700/50 hover:border-cyan-500/30 transition-all">
+            <div class="text-slate-500 flex items-center gap-2 mb-1.5 uppercase tracking-wider font-bold">
+              <i data-lucide="trending-down" class="w-3.5 h-3.5 text-cyan-400"></i> MINIM
+            </div>
+            <div class="text-xs font-extrabold text-white tabular-nums" id="statMin">-</div>
           </div>
-          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
-            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="trending-up" class="w-3 h-3 text-cyber-neonOrange"></i> MAXIM</div>
-            <div class="text-xs font-bold text-gray-200" id="statMax">-</div>
+          <div class="bg-slate-800/30 p-3 rounded-2xl border border-slate-700/50 hover:border-amber-500/30 transition-all">
+            <div class="text-slate-500 flex items-center gap-2 mb-1.5 uppercase tracking-wider font-bold">
+              <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-500"></i> MAXIM
+            </div>
+            <div class="text-xs font-extrabold text-white tabular-nums" id="statMax">-</div>
           </div>
-          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
-            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="calculator" class="w-3 h-3 text-emerald-400"></i> MEDIE</div>
-            <div class="text-xs font-bold text-gray-200" id="statAvg">-</div>
+          <div class="bg-slate-800/30 p-3 rounded-2xl border border-slate-700/50 hover:border-emerald-500/30 transition-all">
+            <div class="text-slate-500 flex items-center gap-2 mb-1.5 uppercase tracking-wider font-bold">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-emerald-500"></i> MEDIE
+            </div>
+            <div class="text-xs font-extrabold text-white tabular-nums" id="statAvg">-</div>
           </div>
-          <div class="bg-cyber-darker/40 p-2 rounded-xl border border-cyber-border/30 hover:border-cyan-500/20 transition-all">
-            <div class="text-gray-500 flex items-center gap-1 mb-0.5"><i data-lucide="bar-chart-2" class="w-3 h-3 text-purple-400"></i> EȘANTIOANE</div>
-            <div class="text-xs font-bold text-gray-200" id="statCount">0</div>
+          <div class="bg-slate-800/30 p-3 rounded-2xl border border-slate-700/50 hover:border-blue-500/30 transition-all">
+            <div class="text-slate-500 flex items-center gap-2 mb-1.5 uppercase tracking-wider font-bold">
+              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-blue-400"></i> SAMPLES
+            </div>
+            <div class="text-xs font-extrabold text-white tabular-nums" id="statCount">0</div>
           </div>
         </div>
       </div>
@@ -205,63 +221,63 @@
           <label class="text-xs text-gray-400 font-mono uppercase tracking-wider mb-2 block">Selecție Funcție Principală (FUNC1)</label>
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5" id="funcGrid">
             <!-- VDC -->
-            <button data-func="VOLT" class="func-btn active flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i>
-              <span class="text-xs font-bold tracking-wider">V DC</span>
+            <button data-func="VOLT" class="func-btn active flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="activity" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">V DC</span>
               <span class="text-[8px] opacity-60 font-mono">Voltaj C.C.</span>
             </button>
             <!-- VAC -->
-            <button data-func="VOLT AC" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="waveform" class="w-5 h-5 text-sky-400"></i>
-              <span class="text-xs font-bold tracking-wider">V AC</span>
+            <button data-func="VOLT AC" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="waveform" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">V AC</span>
               <span class="text-[8px] opacity-60 font-mono">Voltaj C.A.</span>
             </button>
             <!-- IDC -->
-            <button data-func="CURR" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
-              <span class="text-xs font-bold tracking-wider">A DC</span>
+            <button data-func="CURR" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="zap" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">A DC</span>
               <span class="text-[8px] opacity-60 font-mono">Curent C.C.</span>
             </button>
             <!-- IAC -->
-            <button data-func="CURR AC" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="zap-off" class="w-5 h-5 text-yellow-500"></i>
-              <span class="text-xs font-bold tracking-wider">A AC</span>
+            <button data-func="CURR AC" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="zap-off" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">A AC</span>
               <span class="text-[8px] opacity-60 font-mono">Curent C.A.</span>
             </button>
             <!-- RES -->
-            <button data-func="RES" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="percent" class="w-5 h-5 text-emerald-400"></i>
-              <span class="text-xs font-bold tracking-wider">Ω (2-W)</span>
+            <button data-func="RES" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="percent" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">Ω (2-W)</span>
               <span class="text-[8px] opacity-60 font-mono">Rezistență</span>
             </button>
             <!-- FRES (4W) -->
-            <button data-func="FRES" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="grid" class="w-5 h-5 text-emerald-500"></i>
-              <span class="text-xs font-bold tracking-wider">Ω (4-W)</span>
+            <button data-func="FRES" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="grid" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">Ω (4-W)</span>
               <span class="text-[8px] opacity-60 font-mono">4-Fire</span>
             </button>
             <!-- CAP -->
-            <button data-func="CAP" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="box" class="w-5 h-5 text-indigo-400"></i>
-              <span class="text-xs font-bold tracking-wider">CAP</span>
+            <button data-func="CAP" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="box" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">CAP</span>
               <span class="text-[8px] opacity-60 font-mono">Capacitate</span>
             </button>
             <!-- FREQ -->
-            <button data-func="FREQ" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="radio" class="w-5 h-5 text-blue-400"></i>
-              <span class="text-xs font-bold tracking-wider">FREQ</span>
+            <button data-func="FREQ" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="radio" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">FREQ</span>
               <span class="text-[8px] opacity-60 font-mono">Frecvență</span>
             </button>
             <!-- TEMP -->
-            <button data-func="TEMP" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="thermometer" class="w-5 h-5 text-red-400"></i>
-              <span class="text-xs font-bold tracking-wider">TEMP</span>
+            <button data-func="TEMP" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="thermometer" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">TEMP</span>
               <span class="text-[8px] opacity-60 font-mono">Temperatură</span>
             </button>
             <!-- DIOD & CONT -->
-            <button data-func="DIOD" class="func-btn flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 gap-1.5">
-              <i data-lucide="chevrons-right" class="w-5 h-5 text-pink-400"></i>
-              <span class="text-xs font-bold tracking-wider">DIODĂ</span>
+            <button data-func="DIOD" class="func-btn flex flex-col items-center justify-center rounded-2xl border text-center transition-all duration-200 gap-2">
+              <i data-lucide="chevrons-right" class="w-6 h-6"></i>
+              <span class="text-[10px] font-bold tracking-wider uppercase">DIODĂ</span>
               <span class="text-[8px] opacity-60 font-mono">Test Diodă</span>
             </button>
           </div>
@@ -474,16 +490,15 @@
       </div>
 
       <!-- SCPI Terminal Console -->
-      <div class="cyber-panel bg-cyber-card rounded-3xl p-6 border border-cyber-border flex flex-col h-[340px]">
-        <h2 class="text-sm font-semibold text-gray-300 font-mono tracking-wider uppercase mb-1 flex items-center gap-2">
-          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i> Consolă Terminal SCPI
+      <div class="cyber-panel bg-slate-900 rounded-3xl p-6 border border-slate-700/50 flex flex-col h-[340px]">
+        <h2 class="text-[11px] font-bold text-slate-400 font-mono tracking-[0.2em] uppercase mb-1 flex items-center gap-2">
+          <i data-lucide="terminal" class="w-4 h-4 text-cyan-500"></i> Terminal SCPI
         </h2>
-        <p class="text-[9px] text-gray-400 font-mono mb-2">Comandă direct instrumentul folosind protocolul SCPI standard.</p>
+        <p class="text-[9px] text-slate-500 font-mono mb-3">Protocol SCPI Standard (IEEE 488.2)</p>
 
         <!-- Command Prompt Display -->
-        <div id="terminalLog" class="flex-1 bg-cyber-darker rounded-2xl border border-cyber-border/80 p-3 overflow-y-auto font-mono text-[10px] space-y-1.5 min-h-0 select-text">
-          <div class="text-cyan-500">// Terminal inițializat în mod Simulator.</div>
-          <div class="text-cyan-500">// Scrie o comandă mai jos sau dă click pe butoanele rapide.</div>
+        <div id="terminalLog" class="flex-1 bg-slate-950/50 rounded-2xl border border-slate-800 p-4 overflow-y-auto font-mono text-[10px] space-y-2 min-h-0 select-text scrollbar-thin">
+          <div class="text-cyan-500/80">// System ready. Terminal initialized.</div>
         </div>
 
         <!-- Terminal Quick Suggestions Strip -->

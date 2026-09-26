@@ -325,17 +325,17 @@ function syncUIWithDeviceState(state) {
   document.getElementById('displaySpeed').innerText = `VITEZĂ: ${speedLabel}`;
 
   // Speed highlights
-  document.getElementById('speedF').className = state.speed === 'F' ? 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all speed-active' : 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white';
-  document.getElementById('speedM').className = state.speed === 'M' ? 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all speed-active' : 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white';
-  document.getElementById('speedL').className = state.speed === 'L' ? 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all speed-active' : 'flex-1 py-1 text-[10px] font-mono font-bold rounded-lg transition-all text-gray-400 hover:text-white';
+  document.getElementById('speedF').className = state.speed === 'F' ? 'flex-1 py-1.5 text-[10px] font-mono font-bold rounded-lg transition-all bg-cyan-500 text-slate-900' : 'flex-1 py-1.5 text-[10px] font-mono font-medium rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+  document.getElementById('speedM').className = state.speed === 'M' ? 'flex-1 py-1.5 text-[10px] font-mono font-bold rounded-lg transition-all bg-cyan-500 text-slate-900' : 'flex-1 py-1.5 text-[10px] font-mono font-medium rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+  document.getElementById('speedL').className = state.speed === 'L' ? 'flex-1 py-1.5 text-[10px] font-mono font-bold rounded-lg transition-all bg-cyan-500 text-slate-900' : 'flex-1 py-1.5 text-[10px] font-mono font-medium rounded-lg transition-all text-slate-400 hover:text-white hover:bg-slate-800';
 
   // 4. Beeper highlights
   const beepOn = state.beeper === 'ON';
-  document.getElementById('beeperIndicator').className = beepOn ? 'flex items-center gap-1 text-cyber-neonGreen' : 'flex items-center gap-1 text-gray-600 line-through';
+  document.getElementById('beeperIndicator').className = beepOn ? 'flex items-center gap-1.5 text-emerald-500 font-bold' : 'flex items-center gap-1.5 text-slate-600 line-through';
   document.getElementById('beeperStateToggle').checked = beepOn;
 
   // 5. Remote indicator
-  document.getElementById('remoteIndicator').className = state.remoteMode ? 'px-1.5 py-0.5 bg-blue-950/40 border border-blue-900/30 rounded text-blue-400 text-[10px]' : 'px-1.5 py-0.5 bg-gray-950/40 border border-gray-900/10 rounded text-gray-600 text-[10px]';
+  document.getElementById('remoteIndicator').className = state.remoteMode ? 'px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 font-bold text-[10px]' : 'px-2 py-0.5 bg-slate-800/50 border border-slate-700/50 rounded text-slate-600 text-[10px]';
 
   // 6. Sub-display sync
   const subContainer = document.getElementById('subDisplayContainer');
@@ -671,9 +671,9 @@ function pushDataToLogTable(reading) {
 function initializeChart() {
   const ctx = document.getElementById('liveChart').getContext('2d');
   
-  // Create beautiful futuristic dark-cyan gradients for areas
+  // Create beautiful futuristic gradients for areas
   const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-  gradient.addColorStop(0, 'rgba(6, 182, 212, 0.25)');
+  gradient.addColorStop(0, 'rgba(6, 182, 212, 0.15)');
   gradient.addColorStop(1, 'rgba(6, 182, 212, 0.00)');
 
   liveChartInstance = new Chart(ctx, {
@@ -701,12 +701,12 @@ function initializeChart() {
       },
       scales: {
         x: {
-          grid: { color: '#1f293d', drawBorder: false },
-          ticks: { color: '#6b7280', font: { family: 'Share Tech Mono', size: 9 } }
+          grid: { color: 'rgba(51, 65, 85, 0.5)', drawBorder: false },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10, weight: '500' } }
         },
         y: {
-          grid: { color: '#1f293d', drawBorder: false },
-          ticks: { color: '#6b7280', font: { family: 'Share Tech Mono', size: 9 } }
+          grid: { color: 'rgba(51, 65, 85, 0.5)', drawBorder: false },
+          ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10, weight: '500' } }
         }
       },
       animation: { duration: 0 } // completely disable animations to boost speed
@@ -774,20 +774,20 @@ function updateConnectionBadge(connected, isSim = true, portName = 'SIMULATOR') 
   const connectBtn = document.getElementById('connectBtn');
 
   if (!connected) {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-950/40 border border-red-500/20 text-xs text-red-400';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400';
     badgeText.innerText = 'Deconectat';
     connectBtn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5"></i> Conectare';
-    connectBtn.className = 'bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-semibold px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5';
+    connectBtn.className = 'bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20';
   } else if (isSim) {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-yellow-950/40 border border-yellow-500/20 text-xs text-yellow-500';
-    badgeText.innerText = 'Mod Simulator (Sim)';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-500';
+    badgeText.innerText = 'Mod Simulator';
     connectBtn.innerHTML = '<i data-lucide="power" class="w-3.5 h-3.5"></i> Conectare Serială';
-    connectBtn.className = 'bg-cyber-border hover:bg-cyan-500 hover:text-black border border-cyber-border text-xs font-semibold px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5';
+    connectBtn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2';
   } else {
-    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-xs text-emerald-400';
+    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400';
     badgeText.innerText = `Port Activ: ${portName}`;
     connectBtn.innerHTML = '<i data-lucide="square" class="w-3.5 h-3.5"></i> Deconectare';
-    connectBtn.className = 'bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5';
+    connectBtn.className = 'bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-red-500/20';
   }
   initializeLucide();
 }
@@ -821,14 +821,14 @@ function handleSCPIResponse(msg) {
 function showToast(text, type = 'info') {
   // simple native notification toast on bottom left
   const toast = document.createElement('div');
-  toast.className = `fixed bottom-6 left-6 z-50 p-4 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-3 animate-slide-up transition-all cursor-pointer`;
+  toast.className = `fixed bottom-8 left-8 z-50 p-4 rounded-2xl shadow-2xl border text-[11px] font-bold flex items-center gap-3 animate-slide-up transition-all cursor-pointer backdrop-blur-md`;
   
   if (type === 'error') {
-    toast.className += ' bg-red-950/90 border-red-500/30 text-red-300';
-    toast.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i> <span>${text}</span>`;
+    toast.className += ' bg-red-500/10 border-red-500/20 text-red-400';
+    toast.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 text-red-500"></i> <span>${text}</span>`;
   } else {
-    toast.className += ' bg-cyan-950/90 border-cyan-500/30 text-cyan-300';
-    toast.innerHTML = `<i data-lucide="info" class="w-5 h-5 text-cyan-400"></i> <span>${text}</span>`;
+    toast.className += ' bg-cyan-500/10 border-cyan-500/20 text-cyan-400';
+    toast.innerHTML = `<i data-lucide="info" class="w-5 h-5 text-cyan-500"></i> <span>${text}</span>`;
   }
 
   document.body.appendChild(toast);
