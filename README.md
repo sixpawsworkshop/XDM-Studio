@@ -126,4 +126,4 @@ Puteți experimenta în consola terminal SCPI cu următoarele comenzi descrise �
 * `XDM2041_programming_manual.pdf` - Manualul oficial cu instrucțiuni și comenzi SCPI.
 
 ---
-*Proiect dezvoltat de Gemini CLI ca soluție inteligentă, complexă și ultra-modernă pentru măsurători industriale și de laborator.*
+*Proiect dezvoltat de SixPawsWorkshop.*
