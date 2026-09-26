@@ -358,52 +358,79 @@ function processSimulatedSCPI(command) {
 }
 
 // REAL HARDWARE SERIAL COMMUNICATIONS
-// We maintain a list of pending callbacks to match serial write commands with read responses in a simple FIFO queue.
+// Commands ending with '?' are queries that wait for a response line from the device.
+// Commands without '?' are configuration commands (write-only) that do NOT return a response line.
 let pendingCommandCallback = null;
 const commandQueue = [];
+let isWritingToPort = false;
 
 function processNextQueueItem() {
-  if (commandQueue.length === 0 || pendingCommandCallback !== null) return;
+  if (isWritingToPort || commandQueue.length === 0 || pendingCommandCallback !== null) return;
   
   const item = commandQueue.shift();
   if (!activePort || !activePort.writable) {
-    item.reject(new Error('Serial port not writable or disconnected'));
+    item.reject(new Error('Portul serial nu este disponibil sau a fost deconectat'));
     return;
   }
 
-  pendingCommandCallback = { resolve: item.resolve, reject: item.reject, cmd: item.cmd };
-  
-  console.log(`[SERIAL OUT] "${item.cmd}"`);
-  activePort.write(item.cmd + '\n', (err) => {
-    if (err) {
-      console.error('[SERIAL WRITE ERROR]', err);
-      pendingCommandCallback = null;
-      item.reject(err);
-      processNextQueueItem();
-    }
-  });
+  const isQuery = item.cmd.trim().endsWith('?');
+
+  if (isQuery) {
+    pendingCommandCallback = { resolve: item.resolve, reject: item.reject, cmd: item.cmd };
+    console.log(`[SERIAL QUERY] "${item.cmd}"`);
+    activePort.write(item.cmd + '\n', (err) => {
+      if (err) {
+        console.error('[SERIAL WRITE ERROR]', err);
+        pendingCommandCallback = null;
+        item.reject(err);
+        processNextQueueItem();
+      }
+    });
+  } else {
+    isWritingToPort = true;
+    console.log(`[SERIAL CMD] "${item.cmd}"`);
+    activePort.write(item.cmd + '\n', (err) => {
+      if (err) {
+        console.error('[SERIAL WRITE ERROR]', err);
+        isWritingToPort = false;
+        item.reject(err);
+        processNextQueueItem();
+      } else {
+        // Allow instrument 40ms to process the configuration command before executing next
+        setTimeout(() => {
+          isWritingToPort = false;
+          item.resolve('(sent)');
+          processNextQueueItem();
+        }, 40);
+      }
+    });
+  }
 }
 
 function sendSCPICommand(cmd) {
   return new Promise((resolve, reject) => {
-    // Create a timeout to prevent hanging the event loop if the device fails to respond
-    const timeout = setTimeout(() => {
-      const idx = commandQueue.findIndex(item => item.cmd === cmd);
-      if (idx !== -1) commandQueue.splice(idx, 1);
-      
-      if (pendingCommandCallback && pendingCommandCallback.cmd === cmd) {
-        pendingCommandCallback = null;
-      }
-      
-      console.error(`[SERIAL TIMEOUT] No response for: "${cmd}" within 2s`);
-      reject(new Error(`Timeout la comanda: ${cmd}`));
-      processNextQueueItem();
-    }, 2000);
+    const isQuery = cmd.trim().endsWith('?');
+    let timeout = null;
+
+    if (isQuery) {
+      timeout = setTimeout(() => {
+        const idx = commandQueue.findIndex(item => item.cmd === cmd);
+        if (idx !== -1) commandQueue.splice(idx, 1);
+        
+        if (pendingCommandCallback && pendingCommandCallback.cmd === cmd) {
+          pendingCommandCallback = null;
+        }
+        
+        console.error(`[SERIAL TIMEOUT] Niciun răspuns pentru query-ul: "${cmd}" în 2s`);
+        reject(new Error(`Timeout la comanda: ${cmd}`));
+        processNextQueueItem();
+      }, 2000);
+    }
 
     commandQueue.push({ 
       cmd, 
-      resolve: (data) => { clearTimeout(timeout); resolve(data); }, 
-      reject: (err) => { clearTimeout(timeout); reject(err); } 
+      resolve: (data) => { if (timeout) clearTimeout(timeout); resolve(data); }, 
+      reject: (err) => { if (timeout) clearTimeout(timeout); reject(err); } 
     });
     processNextQueueItem();
   });
@@ -412,6 +439,7 @@ function sendSCPICommand(cmd) {
 // Handle incoming lines from real serial port
 function handleSerialLine(line) {
   const trimmed = line.trim();
+  if (!trimmed) return;
   console.log(`[SERIAL IN] "${trimmed}"`);
 
   if (pendingCommandCallback) {
@@ -513,7 +541,7 @@ wss.on('connection', (ws) => {
               autoOpen: false
             });
 
-            activeParser = activePort.pipe(new ReadlineParser({ delimiter: '\r\n' }));
+            activeParser = activePort.pipe(new ReadlineParser({ delimiter: '\n' }));
             activeParser.on('data', (data) => {
               handleSerialLine(data);
             });
@@ -533,22 +561,34 @@ wss.on('connection', (ws) => {
               
               // Broadcast connection success immediately
               broadcastDeviceState();
-              restartQueryInterval();
 
-              // Query device identity & setup in background
+              // Query device identity & setup before starting continuous polling
               try {
-                await new Promise(r => setTimeout(r, 800)); // wait for hardware buffer
-                await sendSCPICommand('SYST:REM');
+                await new Promise(r => setTimeout(r, 400));
+                await sendSCPICommand('SYST:REM'); // Enter Remote SCPI mode
+                await new Promise(r => setTimeout(r, 100));
+
                 const idnResult = await sendSCPICommand('*IDN?');
                 if (idnResult) deviceState.idn = idnResult;
                 
                 const funcRes = await sendSCPICommand('FUNC1?');
-                if (funcRes) deviceState.func1 = funcRes.replace(/['"]/g, '').trim();
+                if (funcRes) {
+                  const cleanF = funcRes.replace(/['"]/g, '').trim().toUpperCase();
+                  if (validModes[cleanF]) deviceState.func1 = validModes[cleanF];
+                }
+
+                const rngRes = await sendSCPICommand('AUTO?');
+                if (rngRes) deviceState.range = (rngRes.trim() === '1') ? 'AUTO' : 'MANUAL';
+
+                const rateRes = await sendSCPICommand('RATE?');
+                if (rateRes && rateRes.trim()) deviceState.speed = rateRes.trim()[0];
 
                 broadcastDeviceState();
-                ws.send(JSON.stringify({ type: 'notification', text: `Inițializare hardware finalizată! ID: ${deviceState.idn}` }));
+                ws.send(JSON.stringify({ type: 'notification', text: `Conectat la instrument! ID: ${deviceState.idn}` }));
               } catch (subErr) {
-                console.warn('[SERIAL INIT WARNING] Failed querying device state directly:', subErr.message);
+                console.warn('[SERIAL INIT WARNING] Failed querying device initial state:', subErr.message);
+              } finally {
+                restartQueryInterval();
               }
             });
 
@@ -571,6 +611,9 @@ wss.on('connection', (ws) => {
         // Disconnect serial port (go back to Simulator Mode)
         case 'disconnect_serial':
           console.log('[SERIAL] Client requested manual disconnect. Falling back to simulator.');
+          try {
+            await sendSCPICommand('SYST:LOC'); // Release multimeter back to local front panel control
+          } catch (e) {}
           closeSerialPort();
           deviceState.connected = true;
           deviceState.isSimulator = true;
@@ -578,7 +621,7 @@ wss.on('connection', (ws) => {
           deviceState.idn = 'OWON,XDM2041,SIM20260919,V1.2.0,3';
           broadcastDeviceState();
           restartQueryInterval();
-          ws.send(JSON.stringify({ type: 'notification', text: 'Port deconectat. Trecut automat pe Simulator.' }));
+          ws.send(JSON.stringify({ type: 'notification', text: 'Port deconectat. Aparatul a revenit pe control local (LOCAL).' }));
           break;
 
         // Send a custom SCPI command from the terminal
@@ -595,7 +638,7 @@ wss.on('connection', (ws) => {
               type: 'scpi_response',
               logId,
               command: rawCmd,
-              response: response === null ? '(no response)' : response,
+              response: response === null ? '(executat)' : response,
               success: true
             }));
           } else {
@@ -606,7 +649,7 @@ wss.on('connection', (ws) => {
                 type: 'scpi_response',
                 logId,
                 command: rawCmd,
-                response: response,
+                response: response === '(sent)' ? '(comandă executată)' : response,
                 success: true
               }));
               
@@ -851,49 +894,80 @@ function restartQueryInterval() {
         // SIMULATED SAMPLING
         const mainVal = getSimulatedReading();
         const subVal = getSimulatedSubReading();
+        const isOL = mainVal.includes('+37') || mainVal.includes('+38') || Math.abs(parseFloat(mainVal)) >= 9e37;
         
         broadcastToAll({
           type: 'reading',
           timestamp: Date.now(),
-          mainValue: parseFloat(mainVal),
+          mainValue: isOL ? null : parseFloat(mainVal),
           mainRaw: mainVal,
           subValue: subVal !== 'NONe' ? parseFloat(subVal) : null,
           subRaw: subVal,
           func1: deviceState.func1,
           func2: deviceState.func2,
-          isOL: mainVal.includes('+37') || mainVal.includes('+38') || parseFloat(mainVal) >= 9e37
+          range: deviceState.range,
+          speed: deviceState.speed,
+          isOL
         });
       } else {
         // PHYSICAL HARDWARE SAMPLING
         if (activePort && activePort.isOpen) {
-          // Perform full-state synchronization every 10th poll cycle
-          if (queryCycle >= 10) {
-            queryCycle = 0;
-            try {
-              const f1 = await sendSCPICommand('FUNC1?');
-              if (f1) deviceState.func1 = f1.replace(/['"]/g, '').trim();
-              
-              const f2 = await sendSCPICommand('FUNC2?');
-              if (f2) deviceState.func2 = f2.replace(/['"]/g, '').trim();
-              
-              const rng = await sendSCPICommand('AUTO?');
-              deviceState.range = (rng === '1') ? 'AUTO' : 'MANUAL';
-              
-              const spd = await sendSCPICommand('RATE?');
-              if (spd) deviceState.speed = spd[0];
-              
-              const beep = await sendSCPICommand('SYST:BEEP:STAT?');
-              deviceState.beeper = (beep === '1') ? 'ON' : 'OFF';
-              
-              broadcastDeviceState();
-            } catch (syncErr) {
-              console.warn('[SYNC WARNING] Failed to sync state:', syncErr.message);
-            }
-          }
+          // Sync state round-robin so we never choke the serial bus
           queryCycle++;
+          try {
+            if (queryCycle === 10) {
+              const f1 = await sendSCPICommand('FUNC1?');
+              if (f1) {
+                const cleanF = f1.replace(/['"]/g, '').trim().toUpperCase();
+                if (validModes[cleanF] && deviceState.func1 !== validModes[cleanF]) {
+                  deviceState.func1 = validModes[cleanF];
+                  broadcastDeviceState();
+                }
+              }
+            } else if (queryCycle === 20) {
+              const rng = await sendSCPICommand('AUTO?');
+              if (rng) {
+                const nextRange = (rng.trim() === '1') ? 'AUTO' : 'MANUAL';
+                if (deviceState.range !== nextRange) {
+                  deviceState.range = nextRange;
+                  broadcastDeviceState();
+                }
+              }
+            } else if (queryCycle === 30) {
+              const spd = await sendSCPICommand('RATE?');
+              if (spd && spd.trim()) {
+                const nextSpeed = spd.trim()[0];
+                if (deviceState.speed !== nextSpeed) {
+                  deviceState.speed = nextSpeed;
+                  broadcastDeviceState();
+                }
+              }
+            } else if (queryCycle === 40) {
+              const f2 = await sendSCPICommand('FUNC2?');
+              if (f2) {
+                const nextF2 = f2.replace(/['"]/g, '').trim().toUpperCase();
+                if (deviceState.func2 !== nextF2) {
+                  deviceState.func2 = nextF2;
+                  broadcastDeviceState();
+                }
+              }
+            } else if (queryCycle >= 50) {
+              queryCycle = 0;
+              const beep = await sendSCPICommand('SYST:BEEP:STAT?');
+              if (beep) {
+                const nextBeep = (beep.trim() === '1') ? 'ON' : 'OFF';
+                if (deviceState.beeper !== nextBeep) {
+                  deviceState.beeper = nextBeep;
+                  broadcastDeviceState();
+                }
+              }
+            }
+          } catch (syncErr) {
+            console.warn('[SYNC WARNING] Failed round-robin sync:', syncErr.message);
+          }
 
           const rawReading = await sendSCPICommand('MEAS?');
-          if (rawReading) {
+          if (rawReading && rawReading !== '(sent)') {
             const timestamp = Date.now();
             
             // If dual display is active, OWON returns "main_value,sub_value"
@@ -902,8 +976,8 @@ function restartQueryInterval() {
             const subRaw = parts[1] ? parts[1].trim() : 'NONe';
 
             const mainNum = parseFloat(mainRaw);
-            const subNum = subRaw !== 'NONe' ? parseFloat(subNum) : null;
-            const isOL = mainRaw.includes('+37') || mainRaw.includes('+38') || mainNum >= 9e37;
+            const subNum = (subRaw && subRaw !== 'NONe') ? parseFloat(subRaw) : null;
+            const isOL = Math.abs(mainNum) >= 1e37 || (mainRaw.includes('9.9') && mainRaw.includes('37')) || mainRaw.toUpperCase().includes('OL') || mainRaw.toUpperCase().includes('O.L');
 
             broadcastToAll({
               type: 'reading',
@@ -914,6 +988,8 @@ function restartQueryInterval() {
               subRaw,
               func1: deviceState.func1,
               func2: deviceState.func2,
+              range: deviceState.range,
+              speed: deviceState.speed,
               isOL
             });
           }

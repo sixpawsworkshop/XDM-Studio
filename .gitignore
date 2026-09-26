@@ -7,5 +7,6 @@ yarn-debug.log*
 yarn-error.log*
 .vscode/
 .idea/
+.txt
 tmp/
 C:/Users/PC/.gemini/tmp/gemini/

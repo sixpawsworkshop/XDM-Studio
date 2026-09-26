@@ -319,6 +319,15 @@ function syncUIWithDeviceState(state) {
   document.getElementById('displayModeBadge').innerText = friendlyObj.label;
   document.getElementById('displayRange').innerText = state.range === 'AUTO' ? 'AUTO SCALE' : `SCALĂ: ${state.range}`;
   
+  const autoManuBadge = document.getElementById('autoManuBadge');
+  if (autoManuBadge) {
+    const isAuto = state.range === 'AUTO';
+    autoManuBadge.innerText = isAuto ? 'AUTO' : 'MANU';
+    autoManuBadge.className = isAuto ? 
+      'px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-[9px] font-mono font-bold text-cyan-400 rounded' : 
+      'px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-[9px] font-mono font-bold text-amber-400 rounded';
+  }
+  
   let speedLabel = 'LENT (L)';
   if (state.speed === 'F') speedLabel = 'RAPID (F)';
   if (state.speed === 'M') speedLabel = 'MEDIU (M)';
@@ -392,60 +401,284 @@ function populateRangeSelectOptions(func, currentRangeValue) {
   }
 }
 
+// FORMAT MULTIMETER DISPLAY (Exact visual mirror of OWON XDM2041 screen)
+function formatMultimeterDisplay(val, func, rangeSetting, speedSetting, isOL) {
+  const isOverload = isOL || val === null || isNaN(val) || Math.abs(val) >= 9e37;
+  
+  if (isOverload) {
+    let unit = 'V';
+    if (func === 'RES' || func === 'FRES' || func === 'CONT') unit = 'Ω';
+    else if (func === 'CURR' || func === 'CURR AC') unit = 'A';
+    else if (func === 'CAP') unit = 'F';
+    else if (func === 'FREQ') unit = 'Hz';
+    else if (func === 'PER') unit = 's';
+    else if (func === 'TEMP') unit = '°C';
+    else if (func === 'DIOD') unit = 'V';
+
+    return {
+      sign: '',
+      valueStr: 'O.L',
+      unit: unit,
+      fullStr: 'O.L',
+      isOL: true,
+      rangeLabel: rangeSetting === 'AUTO' ? 'AUTO' : `SCALĂ: ${rangeSetting}`,
+      barPercent: 100,
+      scaleMin: '0',
+      scaleMid: '50',
+      scaleMax: '100',
+      scaleUnit: unit
+    };
+  }
+
+  const isNeg = val < -1e-12;
+  const absVal = Math.abs(val);
+  const sign = isNeg ? '−' : '';
+  let unit = 'V';
+  let factor = 1;
+  let decimals = 4;
+  let maxRange = 5;
+  let rangeLabel = '';
+  let scaleMin = '0';
+  let scaleMid = '2.5';
+  let scaleMax = '5';
+
+  const speed = speedSetting || currentDeviceState.speed || 'M';
+  const speedOffset = (speed === 'F' ? -1 : (speed === 'L' ? 1 : 0));
+  const range = rangeSetting || currentDeviceState.range || 'AUTO';
+
+  switch (func) {
+    case 'VOLT': {
+      if (range === '1' || (range === 'AUTO' && absVal < 0.055)) {
+        unit = 'mV'; factor = 1e3; decimals = 3; maxRange = 0.055; rangeLabel = '50 mV'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '2' || (range === 'AUTO' && absVal < 0.55)) {
+        unit = 'mV'; factor = 1e3; decimals = 2; maxRange = 0.55; rangeLabel = '500 mV'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '3' || (range === 'AUTO' && absVal < 5.5)) {
+        unit = 'V'; factor = 1; decimals = 4; maxRange = 5.5; rangeLabel = '5 V'; scaleMid = '2.5'; scaleMax = '5';
+      } else if (range === '4' || (range === 'AUTO' && absVal < 55)) {
+        unit = 'V'; factor = 1; decimals = 3; maxRange = 55; rangeLabel = '50 V'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '5' || (range === 'AUTO' && absVal < 550)) {
+        unit = 'V'; factor = 1; decimals = 2; maxRange = 550; rangeLabel = '500 V'; scaleMid = '250'; scaleMax = '500';
+      } else {
+        unit = 'V'; factor = 1; decimals = 1; maxRange = 1000; rangeLabel = '1000 V'; scaleMid = '500'; scaleMax = '1000';
+      }
+      break;
+    }
+
+    case 'VOLT AC': {
+      if (range === '1' || (range === 'AUTO' && absVal < 0.55)) {
+        unit = 'mV'; factor = 1e3; decimals = 2; maxRange = 0.55; rangeLabel = '500 mV'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '2' || (range === 'AUTO' && absVal < 5.5)) {
+        unit = 'V'; factor = 1; decimals = 4; maxRange = 5.5; rangeLabel = '5 V'; scaleMid = '2.5'; scaleMax = '5';
+      } else if (range === '3' || (range === 'AUTO' && absVal < 55)) {
+        unit = 'V'; factor = 1; decimals = 3; maxRange = 55; rangeLabel = '50 V'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '4' || (range === 'AUTO' && absVal < 550)) {
+        unit = 'V'; factor = 1; decimals = 2; maxRange = 550; rangeLabel = '500 V'; scaleMid = '250'; scaleMax = '500';
+      } else {
+        unit = 'V'; factor = 1; decimals = 1; maxRange = 750; rangeLabel = '750 V'; scaleMid = '375'; scaleMax = '750';
+      }
+      break;
+    }
+
+    case 'CURR':
+    case 'CURR AC': {
+      if (range === '1' || (range === 'AUTO' && absVal < 0.00055)) {
+        unit = 'µA'; factor = 1e6; decimals = 2; maxRange = 0.00055; rangeLabel = '500 µA'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '2' || (range === 'AUTO' && absVal < 0.0055)) {
+        unit = 'mA'; factor = 1e3; decimals = 4; maxRange = 0.0055; rangeLabel = '5 mA'; scaleMid = '2.5'; scaleMax = '5';
+      } else if (range === '3' || (range === 'AUTO' && absVal < 0.055)) {
+        unit = 'mA'; factor = 1e3; decimals = 3; maxRange = 0.055; rangeLabel = '50 mA'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '4' || (range === 'AUTO' && absVal < 0.55)) {
+        unit = 'mA'; factor = 1e3; decimals = 2; maxRange = 0.55; rangeLabel = '500 mA'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '5' || (range === 'AUTO' && absVal < 5.5)) {
+        unit = 'A'; factor = 1; decimals = 4; maxRange = 5.5; rangeLabel = '5 A'; scaleMid = '2.5'; scaleMax = '5';
+      } else {
+        unit = 'A'; factor = 1; decimals = 3; maxRange = 10.0; rangeLabel = '10 A'; scaleMid = '5'; scaleMax = '10';
+      }
+      break;
+    }
+
+    case 'RES':
+    case 'FRES': {
+      if (range === '1' || (range === 'AUTO' && absVal < 550)) {
+        unit = 'Ω'; factor = 1; decimals = 2; maxRange = 550; rangeLabel = '500 Ω'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '2' || (range === 'AUTO' && absVal < 5500)) {
+        unit = 'kΩ'; factor = 1e-3; decimals = 4; maxRange = 5500; rangeLabel = '5 kΩ'; scaleMid = '2.5'; scaleMax = '5';
+      } else if (range === '3' || (range === 'AUTO' && absVal < 55000)) {
+        unit = 'kΩ'; factor = 1e-3; decimals = 3; maxRange = 55000; rangeLabel = '50 kΩ'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '4' || (range === 'AUTO' && absVal < 550000)) {
+        unit = 'kΩ'; factor = 1e-3; decimals = 2; maxRange = 550000; rangeLabel = '500 kΩ'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '5' || (range === 'AUTO' && absVal < 5.5e6)) {
+        unit = 'MΩ'; factor = 1e-6; decimals = 4; maxRange = 5.5e6; rangeLabel = '5 MΩ'; scaleMid = '2.5'; scaleMax = '5';
+      } else {
+        unit = 'MΩ'; factor = 1e-6; decimals = 3; maxRange = 50e6; rangeLabel = '50 MΩ'; scaleMid = '25'; scaleMax = '50';
+      }
+      break;
+    }
+
+    case 'CAP': {
+      if (range === '1' || (range === 'AUTO' && absVal < 5.5e-8)) {
+        unit = 'nF'; factor = 1e9; decimals = 2; maxRange = 5.5e-8; rangeLabel = '50 nF'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '2' || (range === 'AUTO' && absVal < 5.5e-7)) {
+        unit = 'nF'; factor = 1e9; decimals = 1; maxRange = 5.5e-7; rangeLabel = '500 nF'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '3' || (range === 'AUTO' && absVal < 5.5e-6)) {
+        unit = 'µF'; factor = 1e6; decimals = 3; maxRange = 5.5e-6; rangeLabel = '5 µF'; scaleMid = '2.5'; scaleMax = '5';
+      } else if (range === '4' || (range === 'AUTO' && absVal < 5.5e-5)) {
+        unit = 'µF'; factor = 1e6; decimals = 2; maxRange = 5.5e-5; rangeLabel = '50 µF'; scaleMid = '25'; scaleMax = '50';
+      } else if (range === '5' || (range === 'AUTO' && absVal < 5.5e-4)) {
+        unit = 'µF'; factor = 1e6; decimals = 1; maxRange = 5.5e-4; rangeLabel = '500 µF'; scaleMid = '250'; scaleMax = '500';
+      } else if (range === '6' || (range === 'AUTO' && absVal < 5.5e-3)) {
+        unit = 'mF'; factor = 1e3; decimals = 3; maxRange = 5.5e-3; rangeLabel = '5 mF'; scaleMid = '2.5'; scaleMax = '5';
+      } else {
+        unit = 'mF'; factor = 1e3; decimals = 2; maxRange = 0.055; rangeLabel = '50 mF'; scaleMid = '25'; scaleMax = '50';
+      }
+      break;
+    }
+
+    case 'FREQ': {
+      maxRange = absVal || 1000;
+      if (absVal < 1000) {
+        unit = 'Hz'; factor = 1; decimals = (absVal < 100 ? 4 : 3); rangeLabel = 'Hz'; scaleMid = '500'; scaleMax = '1000';
+      } else if (absVal < 1e6) {
+        unit = 'kHz'; factor = 1e-3; decimals = (absVal < 1e4 ? 4 : (absVal < 1e5 ? 3 : 2)); rangeLabel = 'kHz'; scaleMid = '500'; scaleMax = '1000';
+      } else {
+        unit = 'MHz'; factor = 1e-6; decimals = 3; rangeLabel = 'MHz'; scaleMid = '30'; scaleMax = '60';
+      }
+      break;
+    }
+
+    case 'PER': {
+      maxRange = absVal || 1;
+      if (absVal < 1e-3) {
+        unit = 'µs'; factor = 1e6; decimals = 2; rangeLabel = 'µs'; scaleMid = '500'; scaleMax = '1000';
+      } else if (absVal < 1) {
+        unit = 'ms'; factor = 1e3; decimals = 3; rangeLabel = 'ms'; scaleMid = '500'; scaleMax = '1000';
+      } else {
+        unit = 's'; factor = 1; decimals = 4; rangeLabel = 's'; scaleMid = '5'; scaleMax = '10';
+      }
+      break;
+    }
+
+    case 'TEMP': {
+      unit = '°C'; factor = 1; decimals = 2; maxRange = 100; rangeLabel = 'RTD'; scaleMid = '50'; scaleMax = '100';
+      break;
+    }
+
+    case 'DIOD': {
+      unit = 'V'; factor = 1; decimals = 4; maxRange = 3.0; rangeLabel = 'DIODE'; scaleMid = '1.5'; scaleMax = '3.0';
+      if (absVal >= 3.0) {
+        return { sign: '', valueStr: 'O.L', unit: 'V', fullStr: 'O.L', isOL: true, rangeLabel: 'DIODE', barPercent: 100, scaleMin: '0', scaleMid: '1.5', scaleMax: '3.0', scaleUnit: 'V' };
+      }
+      break;
+    }
+
+    case 'CONT': {
+      unit = 'Ω'; factor = 1; decimals = 2; maxRange = 1000; rangeLabel = 'CONT'; scaleMid = '500'; scaleMax = '1000';
+      if (absVal >= 1000) {
+        return { sign: '', valueStr: 'O.L', unit: 'Ω', fullStr: 'O.L', isOL: true, rangeLabel: 'CONT', barPercent: 100, scaleMin: '0', scaleMid: '500', scaleMax: '1000', scaleUnit: 'Ω' };
+      }
+      break;
+    }
+  }
+
+  const finalDecimals = Math.max(0, Math.min(6, decimals + speedOffset));
+  const scaledVal = absVal * factor;
+  const valueStr = scaledVal.toFixed(finalDecimals);
+  const displayRangeText = (range === 'AUTO') ? `AUTO [${rangeLabel}]` : `MANU [${rangeLabel}]`;
+  const barPercent = Math.min(100, Math.max(0, Math.round((absVal / maxRange) * 100)));
+
+  return {
+    sign,
+    valueStr,
+    unit,
+    fullStr: `${sign}${valueStr} ${unit}`,
+    isOL: false,
+    rangeLabel: displayRangeText,
+    barPercent,
+    scaleMin: '0',
+    scaleMid,
+    scaleMax,
+    scaleUnit: unit
+  };
+}
+
+// FORMAT SUB DISPLAY (Dual Display mode - e.g. Frequency in AC mode)
+function formatSubDisplay(subVal, subFunc) {
+  if (!subFunc || subFunc === 'NONE' || subVal === null || isNaN(subVal)) {
+    return { valueStr: 'OFF', unit: '' };
+  }
+  const absSub = Math.abs(subVal);
+  if (absSub < 1000) {
+    return { valueStr: absSub.toFixed(2), unit: 'Hz' };
+  } else if (absSub < 1e6) {
+    return { valueStr: (absSub / 1e3).toFixed(3), unit: 'kHz' };
+  } else {
+    return { valueStr: (absSub / 1e6).toFixed(3), unit: 'MHz' };
+  }
+}
+
+// RETRIEVE MEASUREMENT SCALES PREFIX FOR DISPLAY UNITS (Compatibility helper)
+function getFriendlyUnit(func, rawNum) {
+  if (rawNum === null || isNaN(rawNum)) return MODE_MAP[func]?.unit || '';
+  const disp = formatMultimeterDisplay(rawNum, func, currentDeviceState.range, currentDeviceState.speed, false);
+  return disp.unit;
+}
+
 // PROCESS RECEIVED VALUE SAMPLING
 function processIncomingReading(reading) {
+  const mainSignEl = document.getElementById('mainSign');
   const mainValueEl = document.getElementById('mainReading');
   const mainUnitEl = document.getElementById('mainUnit');
   const subReadingEl = document.getElementById('subReading');
   const subUnitEl = document.getElementById('subUnit');
+  const autoManuBadgeEl = document.getElementById('autoManuBadge');
+  const displayRangeEl = document.getElementById('displayRange');
+  const displayBarEl = document.getElementById('displayBar');
+  const barMinEl = document.getElementById('barMinLabel');
+  const barMidEl = document.getElementById('barMidLabel');
+  const barMaxEl = document.getElementById('barMaxLabel');
+  const barUnitEl = document.getElementById('barScaleUnit');
 
-  // 1. Overload / Open Circuit Guard
-  if (reading.isOL) {
+  const activeRange = reading.range || currentDeviceState.range || 'AUTO';
+  const activeSpeed = reading.speed || currentDeviceState.speed || 'M';
+
+  // 1. Format exact mirrored display representation
+  const disp = formatMultimeterDisplay(reading.mainValue, reading.func1, activeRange, activeSpeed, reading.isOL);
+
+  if (disp.isOL) {
+    if (mainSignEl) mainSignEl.innerText = '';
     mainValueEl.innerText = 'O.L';
     mainValueEl.classList.add('ol-active');
-    mainUnitEl.innerText = MODE_MAP[reading.func1]?.unit || '';
-    
-    if (reading.func1 === 'CONT') {
-      // open loop, no beep sound
-    }
+    mainUnitEl.innerText = disp.unit;
   } else {
     mainValueEl.classList.remove('ol-active');
-    
-    // Format numeric decimal counts based on reading rate
-    let formattedVal = '';
-    const val = reading.mainValue;
-    
-    if (val !== null && !isNaN(val)) {
-      // Voltage, current and resistance decimals
-      if (['VOLT', 'VOLT AC', 'RES', 'FRES'].includes(reading.func1)) {
-        // High, medium, low speed decimals counts
-        const decimals = currentDeviceState.speed === 'F' ? 3 : (currentDeviceState.speed === 'M' ? 4 : 5);
-        formattedVal = formatEngineering(val, decimals);
-      } else if (reading.func1 === 'CAP') {
-        formattedVal = formatEngineering(val, 9);
-      } else if (reading.func1 === 'TEMP') {
-        formattedVal = val.toFixed(2);
-      } else {
-        formattedVal = val.toFixed(4);
-      }
-      
-      mainValueEl.innerText = formattedVal;
-    } else {
-      mainValueEl.innerText = reading.mainRaw || '0.0000';
-    }
-    
-    // Set dynamic unit
-    mainUnitEl.innerText = getFriendlyUnit(reading.func1, val);
+    if (mainSignEl) mainSignEl.innerText = disp.sign;
+    mainValueEl.innerText = disp.valueStr;
+    mainUnitEl.innerText = disp.unit;
   }
 
-  // 2. Sub display update
-  if (reading.func2 !== 'NONE' && reading.subValue !== null) {
-    subReadingEl.innerText = parseFloat(reading.subValue).toFixed(2);
-    subUnitEl.innerText = 'Hz';
-  } else {
-    subReadingEl.innerText = 'OFF';
-    subUnitEl.innerText = '';
+  // Update header range badge & Auto/Manual badge
+  if (displayRangeEl) displayRangeEl.innerText = disp.rangeLabel;
+  if (autoManuBadgeEl) {
+    const isAuto = activeRange === 'AUTO';
+    autoManuBadgeEl.innerText = isAuto ? 'AUTO' : 'MANU';
+    autoManuBadgeEl.className = isAuto ? 
+      'px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-[9px] font-mono font-bold text-cyan-400 rounded' : 
+      'px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-[9px] font-mono font-bold text-amber-400 rounded';
   }
+
+  // Update analog scale bar
+  if (displayBarEl) {
+    displayBarEl.style.width = `${disp.barPercent}%`;
+  }
+  if (barMinEl) barMinEl.innerText = disp.scaleMin;
+  if (barMidEl) barMidEl.innerText = disp.scaleMid;
+  if (barMaxEl) barMaxEl.innerText = disp.scaleMax;
+  if (barUnitEl) barUnitEl.innerText = `${disp.scaleUnit} (${disp.barPercent}%)`;
+
+  // 2. Sub display update
+  const subDisp = formatSubDisplay(reading.subValue, reading.func2);
+  subReadingEl.innerText = subDisp.valueStr;
+  subUnitEl.innerText = subDisp.unit;
 
   // 3. Process alarms thresholds limits
   checkAlarmLimits(reading);
@@ -453,53 +686,13 @@ function processIncomingReading(reading) {
   // 4. Update stats and logging if not paused
   if (!isLoggingPaused) {
     updateStatistics(reading);
-    pushDataToLogTable(reading);
+    pushDataToLogTable(reading, disp);
   }
 
   // 5. Update live Chart.js visualization
   if (!isChartPaused && !reading.isOL && reading.mainValue !== null) {
     updateChartData(reading.mainValue, reading.timestamp);
   }
-}
-
-// CONVERT SCIENTIFIC TO HIGH PRECISION OR CONVENIENT DIGITS
-function formatEngineering(value, decimals) {
-  const absVal = Math.abs(value);
-  
-  if (absVal >= 1e6) {
-    return (value / 1e6).toFixed(decimals - 2); // Mega scaled
-  } else if (absVal >= 1e3) {
-    return (value / 1e3).toFixed(decimals - 1); // Kilo scaled
-  } else {
-    return value.toFixed(decimals); // Normal
-  }
-}
-
-// RETRIEVE MEASUREMENT SCALES PREFIX FOR DISPLAY UNITS
-function getFriendlyUnit(func, rawNum) {
-  const base = MODE_MAP[func]?.unit || '';
-  if (rawNum === null || isNaN(rawNum)) return base;
-  
-  const absVal = Math.abs(rawNum);
-  
-  // Custom prefix adjustments
-  if (func === 'RES' || func === 'FRES') {
-    if (absVal >= 1e6) return 'MΩ';
-    if (absVal >= 1e3) return 'KΩ';
-    return 'Ω';
-  }
-  if (func === 'CAP') {
-    if (absVal >= 1e-3) return 'mF';
-    if (absVal >= 1e-6) return 'µF';
-    if (absVal >= 1e-9) return 'nF';
-    return 'F';
-  }
-  if (func === 'CURR' || func === 'CURR AC') {
-    if (absVal < 1e-3) return 'µA';
-    if (absVal < 1) return 'mA';
-    return 'A';
-  }
-  return base;
 }
 
 // UPDATE STATISTICS METRICS PANEL
@@ -606,7 +799,7 @@ function checkAlarmLimits(reading) {
 }
 
 // APPEND READINGS TO SCROLLABLE LOG LIST
-function pushDataToLogTable(reading) {
+function pushDataToLogTable(reading, disp) {
   const tbody = document.getElementById('logTableBody');
   const placeholder = document.getElementById('emptyLogPlaceholder');
   if (placeholder) {
@@ -619,24 +812,18 @@ function pushDataToLogTable(reading) {
   const idx = readingsLog.length + 1;
   const modeLabel = reading.func1;
   
-  let dispVal = '';
-  let status = 'OK';
-  
-  if (reading.isOL) {
-    dispVal = 'O.L';
-    status = 'Overload';
-  } else {
-    dispVal = `${reading.mainValue !== null ? reading.mainValue.toExponential(4) : reading.mainRaw} ${getFriendlyUnit(reading.func1, reading.mainValue)}`;
-  }
+  const dispVal = disp ? disp.fullStr : (reading.isOL ? 'O.L' : `${reading.mainValue} ${MODE_MAP[reading.func1]?.unit || ''}`);
+  const status = reading.isOL ? 'Overload' : 'OK';
 
   // Push to local memory log
   const logItem = {
     index: idx,
     timestamp: reading.timestamp,
     formattedTime: timeStr,
+    displayVal: dispVal,
     value: reading.mainValue,
     raw: reading.mainRaw,
-    unit: getFriendlyUnit(reading.func1, reading.mainValue),
+    unit: disp ? disp.unit : (MODE_MAP[reading.func1]?.unit || ''),
     mode: modeLabel,
     status: status
   };
@@ -1018,10 +1205,10 @@ function setupUIEventListeners() {
 // CSV FORMAT DOWNLOADING AGENT
 function exportToCSV() {
   let csvContent = 'data:text/csv;charset=utf-8,';
-  csvContent += 'Index,Timestamp,Hour,RawValue,PrefixValue,Unit,Mode,Status\r\n';
+  csvContent += 'Index,Timestamp,Hour,DisplayReading,SIValue,RawSCPI,Unit,Mode,Status\r\n';
 
   readingsLog.forEach(row => {
-    const rStr = `${row.index},${row.timestamp},"${row.formattedTime}",${row.value || ''},"${row.raw || ''}","${row.unit || ''}","${row.mode}","${row.status}"`;
+    const rStr = `${row.index},${row.timestamp},"${row.formattedTime}","${row.displayVal || ''}",${row.value !== null && row.value !== undefined ? row.value : ''},"${row.raw || ''}","${row.unit || ''}","${row.mode}","${row.status}"`;
     csvContent += rStr + '\r\n';
   });
 
